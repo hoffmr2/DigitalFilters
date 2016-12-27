@@ -36,14 +36,14 @@ float IIRShelfFilter::FilterOutputLeft(float sample, double b0, double b1) const
 	if (gain_flag_ == true)
 	{
 		ans = (sample - a_coefficients_[1]*memory_left_[0])*b0 + b1*memory_left_[0];
-		memory_left_[0] = sample - a_coefficients_[1]*memory_left_[0];
+		memory_left_[0] = float(sample - a_coefficients_[1]*memory_left_[0]);
 	}
 	else
 	{
 		ans = (sample - b1*memory_left_[0] / b0) / b0 + a_coefficients_[1]*memory_left_[0] / b0;
-		memory_left_[0] = sample - b1*memory_left_[0] / b0;
+		memory_left_[0] = float(sample - b1*memory_left_[0] / b0);
 	}
-	return ans;
+	return float (ans);
 }
 
 /*
@@ -56,14 +56,14 @@ float IIRShelfFilter::FilterOutputRight(float sample, double b0, double b1) cons
 	if (gain_flag_ == true)
 	{
 		ans = (sample - a_coefficients_[1] * memory_right_[0])*b0 + b1*memory_right_[0];
-		memory_right_[0] = sample - a_coefficients_[1] * memory_right_[0];
+		memory_right_[0] = float(sample - a_coefficients_[1] * memory_right_[0]);
 	}
 	else
 	{
 		ans = (sample - b1*memory_right_[0] / b0) / b0 + a_coefficients_[1] * memory_right_[0] / b0;
-		memory_right_[0] = sample - b1*memory_right_[0] / b0;
+		memory_right_[0] = float( sample - b1*memory_right_[0] / b0);
 	}
-	return ans;
+	return float(ans);
 }
 
 
