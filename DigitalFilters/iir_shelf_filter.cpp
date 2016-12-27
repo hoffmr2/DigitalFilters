@@ -14,6 +14,10 @@ IIRShelfFilter::~IIRShelfFilter()
 {
 }
 
+/*
+ * Sets filter gain 
+ * arguments must be given in [DB]
+ */
 void IIRShelfFilter::SetGainDb(double gain_db)
 {
 	
@@ -22,6 +26,10 @@ void IIRShelfFilter::SetGainDb(double gain_db)
 	gain_ = std::pow(10, (-std::abs(exp)));
 }
 
+/*
+ * Returns the value od filtered sample
+ * for left channel
+ */
 float IIRShelfFilter::FilterOutputLeft(float sample, double b0, double b1) const
 {
 	double ans;
@@ -38,6 +46,31 @@ float IIRShelfFilter::FilterOutputLeft(float sample, double b0, double b1) const
 	return ans;
 }
 
+/*
+ * returns the value of filtered sample
+ * for right channel
+ */
+float IIRShelfFilter::FilterOutputRight(float sample, double b0, double b1) const
+{
+	double ans;
+	if (gain_flag_ == true)
+	{
+		ans = (sample - a_coefficients_[1] * memory_right_[0])*b0 + b1*memory_right_[0];
+		memory_right_[0] = sample - a_coefficients_[1] * memory_right_[0];
+	}
+	else
+	{
+		ans = (sample - b1*memory_right_[0] / b0) / b0 + a_coefficients_[1] * memory_right_[0] / b0;
+		memory_right_[0] = sample - b1*memory_right_[0] / b0;
+	}
+	return ans;
+}
+
+
+/*
+ * Changes cutoff frequency to new one
+ * and sets all necessary parameters
+ */
 void IIRShelfFilter::ChangeCutoffFrequency(double cutoff_frequency)
 {
 	assert(cutoff_frequency > 0);
@@ -45,6 +78,20 @@ void IIRShelfFilter::ChangeCutoffFrequency(double cutoff_frequency)
 	SetAngularCutoffFrequency();
 	InitAcoefficients();
 	InitBcoefficients();
+}
+
+/*
+ * returns the amplitude spectrum value
+ * for given frequency and b0 and b1 filter coefficients
+ */
+double IIRShelfFilter::Spectrum(double frequency, double b0, double b1) const
+{
+	if (gain_flag_ == true)
+		return sqrt((pow(b0 + b1 *cos(2 * PI*frequency), 2) + pow(-b1 *sin(2 * PI*frequency), 2))
+			/ (pow(a_coefficients_[0] + a_coefficients_[1] *cos(2 * PI*frequency), 2) + pow(-a_coefficients_[1] *sin(2 * PI*frequency), 2)));
+	else
+		return sqrt((pow(a_coefficients_[0] + a_coefficients_[1] *cos(2 * PI*frequency), 2) + pow(-a_coefficients_[1] *sin(2 * PI*frequency), 2))
+			/ (pow(b0 + b1 *cos(2 * PI*frequency), 2) + pow(-b1 *sin(2 * PI*frequency), 2)));
 }
 
 void IIRShelfFilter::InitAcoefficients()

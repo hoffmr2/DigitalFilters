@@ -18,9 +18,9 @@ public:
 
 	
 	float FilterOutputLeft(float sample, double b0,double b1) const;
-	float FilterOutputRight(float sample, double b0, double b1);
+	float FilterOutputRight(float sample, double b0, double b1) const;
 	void ChangeCutoffFrequency(double cutoff_frequency) override;
-	double Spectrum(double frequency, double b0,double b1);
+	double Spectrum(double frequency, double b0,double b1) const;
 	void InitAcoefficients() override;
 	void InitBcoefficients() override;
 	void InitMemory() override;
