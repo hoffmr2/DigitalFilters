@@ -3,7 +3,11 @@
 
 DigitalFilter::DigitalFilter(double cutoff_frequency, double sample_rate, bypassState bypass_state) : cutoff_frequency_(cutoff_frequency), 
 																									  sample_rate_(sample_rate), 
-																									  bypass_state_(bypass_state)
+																									  bypass_state_(bypass_state),
+																									  a_coefficients_(nullptr),
+																									  b_coefficients_(nullptr),
+																									  memory_left_(nullptr),
+																									  memory_right_(nullptr)			
 {
 	assert(sample_rate_ > 0);
 	assert(cutoff_frequency_ > 0);

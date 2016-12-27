@@ -18,9 +18,15 @@
     <ClInclude Include="digital_filter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="iir_shelf_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="digital_filter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iir_shelf_filter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

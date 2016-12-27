@@ -26,12 +26,13 @@ public:
 
 
 
-	virtual void ChangeFpass(double newFpass)=0;
+	virtual void ChangeCutoffFrequency(double newFpass)=0;
 	virtual float FilterOutputLeft(float sample) = 0;
 	virtual float FilterOutputRight(float sample) = 0;
 	virtual double Spectrum(double frequency) = 0;
 	virtual void InitAcoefficients() = 0;
 	virtual void InitBcoefficients() = 0;
+	virtual void InitMemory() = 0;
 
 protected:
 	virtual void SetAngularCutoffFrequency();
