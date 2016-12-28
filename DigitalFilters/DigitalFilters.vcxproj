@@ -147,14 +147,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="digital_filter.h" />
+    <ClInclude Include="digital_filters.h" />
     <ClInclude Include="iir_high_shelf_filter.h" />
     <ClInclude Include="iir_low_shelf_filter.h" />
+    <ClInclude Include="iir_parametric_band_pass_filter.h" />
     <ClInclude Include="iir_shelf_filter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="digital_filter.cpp" />
     <ClCompile Include="iir_high_shelf_filter.cpp" />
     <ClCompile Include="iir_low_shelf_filter.cpp" />
+    <ClCompile Include="iir_parametric_band_pass_filter.cpp" />
     <ClCompile Include="iir_shelf_filter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

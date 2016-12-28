@@ -4,7 +4,7 @@
 IIRShelfFilter::IIRShelfFilter(double cutoff_frequency, double sample_rate, double gain_db, bypassState bypass_state) : DigitalFilter(cutoff_frequency,sample_rate,bypass_state), gain_flag_(true)																														
 {
 	SetGainDb(gain_db);
-	InitAcoefficients();
+	IIRShelfFilter::InitAcoefficients();
 	InitBcoefficients();
 	InitMemory();
 
@@ -116,7 +116,7 @@ void IIRShelfFilter::InitMemory()
 {
 	if(memory_left_ == nullptr)
 		memory_left_ = new float[MEMORY_SIZE];
-	if(memory_left_ ==nullptr)
+	if(memory_right_ ==nullptr)
 		memory_right_ = new float[MEMORY_SIZE];
 	memory_left_[0] = 0;
 	memory_right_[0] = 0;

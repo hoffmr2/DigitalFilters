@@ -3,14 +3,14 @@
 #ifndef IIR_SHELF_FILTER_H_
 #define IIR_SHELF_FILTER_H_
 
-#define COEFFICIENTS_NUMBER 2
-#define MEMORY_SIZE 1
+
 
 #include "digital_filter.h"
 class IIRShelfFilter :
 	public DigitalFilter
 {
 public:
+	static const int COEFFICIENTS_NUMBER = 2, MEMORY_SIZE = 1;
 	IIRShelfFilter(double cutoff_frequency, double sample_rate, double gain_db, bypassState bypass_state = off);
 	virtual ~IIRShelfFilter();
 
