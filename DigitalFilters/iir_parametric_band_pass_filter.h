@@ -20,7 +20,7 @@ public:
 	float FilterOutputLeft(float sample) override;
 	void CalculateCorrectedBCoefficients(double& b0, double& b1, double& b2) const;
 	float FilterOutputRight(float sample) override;
-	float FilterOutput(float sample, float* memory);
+	float FilterOutput(float sample, float* memory) const;
 	double Spectrum(double frequency) override;
 	void InitAcoefficients() override;
 	void InitBcoefficients() override;

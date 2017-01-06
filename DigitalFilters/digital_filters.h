@@ -571,7 +571,250 @@ namespace HoffFilters
 		gain_ = pow(10, (-abs(exp)));
 	}
 
+	class FIRInterpolatorFilter :
+		public DigitalFilter
+	{
+	public:
+		FIRInterpolatorFilter(int filter_size, int interpolation_factor);
+		~FIRInterpolatorFilter();
 
+		float FilterOutput(float * samples, int start, int samples_vector_size) const;
+
+		void InitBcoefficients() override;
+		void InitMemory() override;
+		void ShiftMemory(float sample) const;
+
+		void ChangeCutoffFrequency(double newFpass) override {};
+		float FilterOutputLeft(float sample) override { return 0; };
+		float FilterOutputRight(float sample) override { return 0; };
+		double Spectrum(double frequency) override { return 0; };
+		void InitAcoefficients() override {};
+
+	protected:
+
+		int filter_size_;
+		int interpolation_factor_;
+	};
+
+	FIRInterpolatorFilter::FIRInterpolatorFilter(int filter_size, int interpolation_factor) : DigitalFilter(1, 1), filter_size_(filter_size), interpolation_factor_(interpolation_factor)
+	{
+		InitMemory();
+		InitBcoefficients();
+	}
+
+	FIRInterpolatorFilter::~FIRInterpolatorFilter()
+	{
+		if (b_coefficients_ != nullptr)
+			delete[] b_coefficients_;
+		if (memory_left_ != nullptr)
+			delete[] memory_left_;
+	}
+
+	float FIRInterpolatorFilter::FilterOutput(float* samples, int start, int samples_vector_size) const
+	{
+		float ans = 0;
+		for (int i = 0; i < filter_size_; ++i)
+			ans += memory_left_[i] * b_coefficients_[i];
+		ans += samples[start];
+		ShiftMemory(samples[start]);
+		for (int i = start + 1; i <start + filter_size_ && i < samples_vector_size; ++i)
+			ans += samples[i] * b_coefficients_[i - start];
+
+		return ans;
+	}
+
+	void FIRInterpolatorFilter::InitBcoefficients()
+	{
+		b_coefficients_ = new double[2 * filter_size_ + 1];
+
+		for (auto i = 0; i<2 * filter_size_ + 1; ++i)
+		{
+			if (i - filter_size_ != 0)
+				b_coefficients_[i] = sin(PI*(i - filter_size_) / interpolation_factor_) / (PI*(i - filter_size_) / interpolation_factor_);
+			else
+				b_coefficients_[i] = 1;
+			auto hanning_window = (0.54 - 0.46* cos(2 * PI*(i - filter_size_) / (2 * filter_size_)));
+			b_coefficients_[i] *= hanning_window;
+		}
+	}
+
+	void FIRInterpolatorFilter::InitMemory()
+	{
+		if (memory_left_ == nullptr)
+			memory_left_ = new float[filter_size_];
+		for (auto i = 0; i < filter_size_; ++i)
+			memory_left_[i] = 0;
+	}
+
+	void FIRInterpolatorFilter::ShiftMemory(float sample) const
+	{
+		float tmp;
+		for (auto i = filter_size_ - 2; i >= 0; --i)
+		{
+			tmp = memory_left_[i];
+			memory_left_[i] = memory_left_[i + 1];
+		}
+		memory_left_[filter_size_ - 1] = sample;
+	}
+
+
+	class IIRLowPassFilter :
+		public DigitalFilter
+	{
+	public:
+
+		IIRLowPassFilter(double cutoff_frequency, double sample_rate, double absorbtion_db = 3, bypassState bypass_state = off);
+		~IIRLowPassFilter();
+
+		virtual void ChangeCutoffFrequency(double newFpass) override;
+		virtual float FilterOutputLeft(float sample) override;
+		virtual float FilterOutputRight(float sample) override;
+		virtual double Spectrum(double frequency) override;
+		virtual void InitAcoefficients() override;
+
+		virtual void InitBcoefficients() override;
+		virtual void InitMemory() override;
+	protected:
+		double GetCoefficientDenominator() const;
+		double GetA1CoefficientValue() const;
+		int GetA2Coefficient() const;
+		double GetB0Coefficient() const;
+		void SetAbsorbtionFactor(double absorbtion_db);
+		float FilterOutput(float* memory, float sample) const;
+
+		static const int MEMORY_SIZE = 2, COEFFICIENTS_NUMBER = 3;
+		double absorbtion_factor_;
+	};
+
+
+	IIRLowPassFilter::IIRLowPassFilter(double cutoff_frequency, double sample_rate, double absorbtion_db, bypassState bypass_state)
+		:DigitalFilter(cutoff_frequency, sample_rate, bypass_state)
+	{
+		assert(absorbtion_db > 0);
+		SetAbsorbtionFactor(absorbtion_db);
+		InitMemory();
+		InitAcoefficients();
+		InitBcoefficients();
+	}
+
+	IIRLowPassFilter::~IIRLowPassFilter()
+	{
+	}
+
+	void IIRLowPassFilter::ChangeCutoffFrequency(double newFpass)
+	{
+		assert(newFpass > 0);
+		cutoff_frequency_ = newFpass;
+		SetAngularCutoffFrequency();
+		InitMemory();
+		InitAcoefficients();
+		InitBcoefficients();
+
+	}
+
+	double IIRLowPassFilter::GetCoefficientDenominator() const
+	{
+		return 4 * absorbtion_factor_ * absorbtion_factor_ * sample_rate_ * sample_rate_ +
+			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(2) +
+			angular_cutoff_frequency_ * angular_cutoff_frequency_;
+	}
+
+	double IIRLowPassFilter::GetA1CoefficientValue() const
+	{
+		auto denominator = GetCoefficientDenominator();
+		return (2 * angular_cutoff_frequency_ * angular_cutoff_frequency_ -
+			8 * absorbtion_factor_ * absorbtion_factor_ * sample_rate_ * sample_rate_) / denominator;
+	}
+
+	int IIRLowPassFilter::GetA2Coefficient() const
+	{
+		auto denominator = GetCoefficientDenominator();
+		return (angular_cutoff_frequency_ * angular_cutoff_frequency_ +
+			4 * absorbtion_factor_ * absorbtion_factor_ * sample_rate_ * sample_rate_ -
+			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(2)) / denominator;
+	}
+
+	float IIRLowPassFilter::FilterOutputLeft(float sample)
+	{
+		if (bypass_state_ == off)
+			return FilterOutput(memory_right_, sample);
+		else
+			return sample;
+	}
+
+	float IIRLowPassFilter::FilterOutputRight(float sample)
+	{
+		if (bypass_state_ == off)
+			return FilterOutput(memory_left_, sample);
+		else
+			return sample;
+	}
+
+	double IIRLowPassFilter::Spectrum(double frequency)
+	{
+		return sqrt((pow((b_coefficients_[0] + b_coefficients_[1] * cos(2 * PI*frequency) + b_coefficients_[2] * cos(4 * PI*frequency)), 2)
+			+ pow(b_coefficients_[1] * sin(2 * PI*frequency) + b_coefficients_[2] * sin(4 * PI*frequency), 2)) /
+			(pow((1 + a_coefficients_[1] * cos(2 * PI*frequency) + a_coefficients_[2] * cos(4 * PI*frequency)), 2)
+				+ pow(a_coefficients_[1] * sin(2 * PI*frequency) + a_coefficients_[2] * sin(4 * PI*frequency), 2)));
+	}
+
+	void IIRLowPassFilter::InitAcoefficients()
+	{
+		if (a_coefficients_ == nullptr)
+			a_coefficients_ = new double[COEFFICIENTS_NUMBER];
+
+
+
+		a_coefficients_[0] = 1;
+		a_coefficients_[1] = GetA1CoefficientValue();
+		a_coefficients_[2] = GetA2Coefficient();
+	}
+
+	double IIRLowPassFilter::GetB0Coefficient() const
+	{
+		return (angular_cutoff_frequency_ * angular_cutoff_frequency_) / GetCoefficientDenominator();
+	}
+
+	void IIRLowPassFilter::SetAbsorbtionFactor(double absorbiton_db)
+	{
+		auto expression = pow(10, absorbiton_db / 10) - 1;
+		absorbtion_factor_ = pow(expression, 1.0 / 4.0);
+	}
+
+	float IIRLowPassFilter::FilterOutput(float* memory, float sample) const
+	{
+
+		auto tmp = (sample - a_coefficients_[1] * memory[0] - a_coefficients_[2] * memory[1]);
+		auto ans = tmp*b_coefficients_[0] + b_coefficients_[1] * memory[0] + b_coefficients_[2] * memory[1];
+		memory[1] = memory[0];
+		memory[0] = float(tmp);
+
+		return float(ans);
+	}
+
+	void IIRLowPassFilter::InitBcoefficients()
+	{
+		if (b_coefficients_ == nullptr)
+			b_coefficients_ = new double[MEMORY_SIZE];
+
+		b_coefficients_[0] = GetB0Coefficient();
+		b_coefficients_[1] = 2 * GetB0Coefficient();
+		b_coefficients_[2] = GetB0Coefficient();
+	}
+
+	void IIRLowPassFilter::InitMemory()
+	{
+		if (memory_left_ == nullptr)
+			memory_left_ = new float[MEMORY_SIZE];
+		if (memory_right_ == nullptr)
+			memory_right_ = new float[MEMORY_SIZE];
+
+		for (auto i = 0; i<MEMORY_SIZE; ++i)
+		{
+			memory_left_[i] = 0;
+			memory_right_[i] = 0;
+		}
+	}
 
 
 }

@@ -70,7 +70,7 @@ float IIRParametricBandPassFilter::FilterOutputRight(float sample)
 		return sample;
 }
 
-float IIRParametricBandPassFilter::FilterOutput(float sample, float* memory)
+float IIRParametricBandPassFilter::FilterOutput(float sample, float* memory) const
 {
 	double ans;
 	double b0,b1,b2;	

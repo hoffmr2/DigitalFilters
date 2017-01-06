@@ -33,6 +33,12 @@
     <ClInclude Include="digital_filters.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fir_interpolator_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="iir_low_pass_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="digital_filter.cpp">
@@ -48,6 +54,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="iir_parametric_band_pass_filter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fir_interpolator_filter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="iir_low_pass_filter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
