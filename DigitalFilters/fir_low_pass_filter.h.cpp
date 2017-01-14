@@ -49,7 +49,7 @@ double FirLowPassFilter::factorial(unsigned arg)
 {
 	if (arg == 0 || arg == 1) return 1;
 	int ans = 2;
-	for (int i = 3; i <= arg; ++i)
+	for (unsigned int i = 3; i <= arg; ++i)
 		ans *= i;
 	return ans;
 }
