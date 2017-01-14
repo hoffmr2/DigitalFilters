@@ -858,7 +858,7 @@ namespace HoffFilters
 		: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(0)
 
 	{
-		InitAcoefficients();
+
 
 	}
 
@@ -916,7 +916,7 @@ namespace HoffFilters
 
 	void FirFilter::InitAcoefficients()
 	{
-		*a_coefficients_ = 1;
+		a_coefficients_ = nullptr;
 	}
 
 
@@ -1020,6 +1020,10 @@ namespace HoffFilters
 	void FirLowPassFilter::InitBcoefficients()
 	{
 		double h, w;
+
+		if (b_coefficients_ != nullptr)
+			delete b_coefficients_;
+		b_coefficients_ = new double[filter_size_];
 		auto fc = (cutoff_frequency_ / 2 + stop_band_frequency_ / 2) / sample_rate_;
 		double half_of_filter_size = filter_size_ / 2;
 		auto besseli_value = BesselZeroKindFunction(beta_factor_);
@@ -1058,7 +1062,8 @@ namespace HoffFilters
 	void FirLowPassFilter::CalculateFilterSize()
 	{
 		assert(d_factor_ != 0);
-		auto df = stop_band_frequency_ - angular_cutoff_frequency_;
+		assert(stop_band_frequency_ > cutoff_frequency_);
+		auto df = stop_band_frequency_ - cutoff_frequency_;
 		filter_size_ = static_cast<int>(ceil((d_factor_ * sample_rate_) / (df)));
 		filter_size_ += (filter_size_ % 2 == 0) ? 1 : 0;
 	}

@@ -1,16 +1,16 @@
 #include "fir_filter.h"
 
 
-FirFilter::FirFilter(double sample_rate,  double pass_band_frequency)
-	: DigitalFilter(pass_band_frequency,sample_rate), filter_size_(0)
+FirFilter::FirFilter(double sample_rate, double pass_band_frequency)
+	: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(0)
 
 {
-	InitAcoefficients();
+
 
 }
 
 FirFilter::FirFilter(double sample_rate, double pass_band_frequency, double* b_coefficients, int filter_size)
-	:  DigitalFilter(pass_band_frequency, sample_rate), filter_size_(filter_size), tmp_b_coeffcients_(b_coefficients)
+	: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(filter_size), tmp_b_coeffcients_(b_coefficients)
 {
 	InitMemory();
 	InitBcoefficients();
@@ -27,7 +27,7 @@ float FirFilter::FilterOutputLeft(float sample)
 
 float FirFilter::FilterOutputRight(float sample)
 {
-	return FilterOutput(sample,memory_right_);
+	return FilterOutput(sample, memory_right_);
 }
 
 double FirFilter::Spectrum(double frequency)
@@ -36,9 +36,9 @@ double FirFilter::Spectrum(double frequency)
 	auto real = 0.0;
 	auto imag = 0.0;
 
-	for(auto i=0;i<filter_size_;++i)
+	for (auto i = 0; i<filter_size_; ++i)
 	{
-		real += cos(2*PI*frequency/sample_rate_)*b_coefficients_[i];
+		real += cos(2 * PI*frequency / sample_rate_)*b_coefficients_[i];
 		imag += sin(2 * PI*frequency / sample_rate_)*b_coefficients_[i];
 	}
 
@@ -63,7 +63,7 @@ void FirFilter::InitBcoefficients()
 
 void FirFilter::InitAcoefficients()
 {
-	*a_coefficients_ = A_COEFFICIENTS_VALUE;
+	a_coefficients_ = nullptr;
 }
 
 
@@ -72,7 +72,7 @@ void FirFilter::InitAcoefficients()
 void FirFilter::ShiftMemory(float* memory) const
 {
 	auto tmp = memory[0];
-	for(auto i=1;i<filter_size_;++i)
+	for (auto i = 1; i<filter_size_; ++i)
 	{
 		memory[i] = memory[i - 1];
 	}
@@ -112,5 +112,5 @@ float FirFilter::FilterOutput(float sample, float* memory) const
 
 	ShiftMemory(memory);
 
-	return float(output);
+	return output;
 }

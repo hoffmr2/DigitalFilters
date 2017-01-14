@@ -4,17 +4,16 @@
 #define FIR_LOW_PASS_FILTER_H_
 
 #include "fir_filter.h"
-#include <boost/math/special_functions/factorials.hpp>
 class FirLowPassFilter :
 	public FirFilter
 {
 public:
 	void InitFilter();
-	FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency,double absorbtion_in_stop_band);
+	FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band);
 	~FirLowPassFilter();
 
 	virtual void InitBcoefficients() override;
-	void ChangeCutoffFrequency(double passband_requency,double stopband_frequency);
+	void ChangeCutoffFrequency(double passband_requency, double stopband_frequency);
 
 	void CalculateFilterSize();
 	void InitDFactor();
@@ -28,8 +27,8 @@ private:
 	static double factorial(unsigned int arg);
 	void ChangeCutoffFrequency(double newFpass) override;
 	double BesselZeroKindFunction(double beta) const;
-	
-	
+
+
 };
 
 #endif

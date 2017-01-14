@@ -10,8 +10,8 @@ void FirLowPassFilter::InitFilter()
 	InitBcoefficients();
 }
 
-FirLowPassFilter::FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band) 
-	: FirFilter(sample_rate,pass_band_frequency), stop_band_frequency_(stop_band_frequency), absorbtion_in_stop_band_(absorbtion_in_stop_band)
+FirLowPassFilter::FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band)
+	: FirFilter(sample_rate, pass_band_frequency), stop_band_frequency_(stop_band_frequency), absorbtion_in_stop_band_(absorbtion_in_stop_band)
 {
 	InitFilter();
 
@@ -23,7 +23,11 @@ FirLowPassFilter::~FirLowPassFilter()
 
 void FirLowPassFilter::InitBcoefficients()
 {
-	double h,w;
+	double h, w;
+
+	if (b_coefficients_ != nullptr)
+		delete b_coefficients_;
+	b_coefficients_ = new double[filter_size_];
 	auto fc = (cutoff_frequency_ / 2 + stop_band_frequency_ / 2) / sample_rate_;
 	double half_of_filter_size = filter_size_ / 2;
 	auto besseli_value = BesselZeroKindFunction(beta_factor_);
@@ -56,13 +60,14 @@ double FirLowPassFilter::factorial(unsigned arg)
 
 void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
 {
-	
+
 }
 
 void FirLowPassFilter::CalculateFilterSize()
 {
 	assert(d_factor_ != 0);
-	auto df = stop_band_frequency_ - angular_cutoff_frequency_ ;
+	assert(stop_band_frequency_ > cutoff_frequency_);
+	auto df = stop_band_frequency_ - cutoff_frequency_;
 	filter_size_ = static_cast<int>(ceil((d_factor_ * sample_rate_) / (df)));
 	filter_size_ += (filter_size_ % 2 == 0) ? 1 : 0;
 }
@@ -94,7 +99,7 @@ double FirLowPassFilter::BesselZeroKindFunction(double beta) const
 	double ans = 1;
 	for (int k = 1; k < 7; ++k)
 	{
-		ans += pow(pow(beta / 2, k) /factorial(k), 2);
+		ans += pow(pow(beta / 2, k) / factorial(k), 2);
 	}
 	return ans;
 }
