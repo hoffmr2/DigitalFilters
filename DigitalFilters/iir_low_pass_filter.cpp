@@ -51,7 +51,7 @@ int IIRLowPassFilter::GetA2Coefficient() const
 float IIRLowPassFilter::FilterOutputLeft(float sample)
 {
 	if (bypass_state_ == off)
-		return FilterOutput(memory_right_, sample);
+		return FilterOutput(memory_left_, sample);
 	else
 		return sample;
 }
@@ -59,7 +59,7 @@ float IIRLowPassFilter::FilterOutputLeft(float sample)
 float IIRLowPassFilter::FilterOutputRight(float sample)
 {
 	if (bypass_state_ == off)
-		return FilterOutput(memory_left_, sample);
+		return FilterOutput(memory_right_, sample);
 	else
 		return sample;
 }

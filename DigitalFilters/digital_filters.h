@@ -617,7 +617,7 @@ namespace HoffFilters
 			ans += memory_left_[i] * b_coefficients_[i];
 		ans += samples[start];
 		ShiftMemory(samples[start]);
-		for (int i = start + 1; i <start + filter_size_ && i < samples_vector_size; ++i)
+		for (int i = start + 1; i < start + filter_size_ && i < samples_vector_size; ++i)
 			ans += samples[i] * b_coefficients_[i - start];
 
 		return ans;
@@ -627,7 +627,7 @@ namespace HoffFilters
 	{
 		b_coefficients_ = new double[2 * filter_size_ + 1];
 
-		for (auto i = 0; i<2 * filter_size_ + 1; ++i)
+		for (auto i = 0; i < 2 * filter_size_ + 1; ++i)
 		{
 			if (i - filter_size_ != 0)
 				b_coefficients_[i] = sin(PI*(i - filter_size_) / interpolation_factor_) / (PI*(i - filter_size_) / interpolation_factor_);
@@ -737,7 +737,7 @@ namespace HoffFilters
 	float IIRLowPassFilter::FilterOutputLeft(float sample)
 	{
 		if (bypass_state_ == off)
-			return FilterOutput(memory_right_, sample);
+			return FilterOutput(memory_left_, sample);
 		else
 			return sample;
 	}
@@ -745,7 +745,7 @@ namespace HoffFilters
 	float IIRLowPassFilter::FilterOutputRight(float sample)
 	{
 		if (bypass_state_ == off)
-			return FilterOutput(memory_left_, sample);
+			return FilterOutput(memory_right_, sample);
 		else
 			return sample;
 	}
@@ -809,13 +809,282 @@ namespace HoffFilters
 		if (memory_right_ == nullptr)
 			memory_right_ = new float[MEMORY_SIZE];
 
-		for (auto i = 0; i<MEMORY_SIZE; ++i)
+		for (auto i = 0; i < MEMORY_SIZE; ++i)
 		{
 			memory_left_[i] = 0;
 			memory_right_[i] = 0;
 		}
 	}
 
+
+
+
+
+
+
+
+	class FirFilter :
+		public DigitalFilter
+	{
+	public:
+		FirFilter(double sample_rate, double pass_band_frequency);
+		FirFilter(double sample_rate, double pass_band_frequency, double* b_coefficients, int filter_size);
+		~FirFilter();
+
+		virtual float FilterOutputLeft(float sample) override;
+		virtual float FilterOutputRight(float sample) override;
+		virtual double Spectrum(double frequency) override;
+
+		void InitBcoefficients() override;
+		void InitAcoefficients() override;
+
+		void ShiftMemory(float* memory) const;
+		void ClearMemory() const;
+		virtual void InitMemory() override;
+	protected:
+		float FilterOutput(float sample, float* memory) const;
+
+		int filter_size_;
+
+	private:
+		void ChangeCutoffFrequency(double newFpass) override;
+		double* tmp_b_coeffcients_;
+
+
+	};
+
+
+	FirFilter::FirFilter(double sample_rate, double pass_band_frequency)
+		: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(0)
+
+	{
+		InitAcoefficients();
+
+	}
+
+	FirFilter::FirFilter(double sample_rate, double pass_band_frequency, double* b_coefficients, int filter_size)
+		: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(filter_size), tmp_b_coeffcients_(b_coefficients)
+	{
+		InitMemory();
+		InitBcoefficients();
+	}
+
+	FirFilter::~FirFilter()
+	{
+	}
+
+	float FirFilter::FilterOutputLeft(float sample)
+	{
+		return FilterOutput(sample, memory_left_);
+	}
+
+	float FirFilter::FilterOutputRight(float sample)
+	{
+		return FilterOutput(sample, memory_right_);
+	}
+
+	double FirFilter::Spectrum(double frequency)
+	{
+		assert(b_coefficients_ != nullptr);
+		auto real = 0.0;
+		auto imag = 0.0;
+
+		for (auto i = 0; i<filter_size_; ++i)
+		{
+			real += cos(2 * PI*frequency / sample_rate_)*b_coefficients_[i];
+			imag += sin(2 * PI*frequency / sample_rate_)*b_coefficients_[i];
+		}
+
+		return sqrt(real*real + imag*imag);
+	}
+
+	void FirFilter::ChangeCutoffFrequency(double newFpass)
+	{
+	}
+
+	void FirFilter::InitBcoefficients()
+	{
+		assert(filter_size_ != 0);
+		if (b_coefficients_ != nullptr)
+			delete b_coefficients_;
+		b_coefficients_ = new double[filter_size_];
+
+		for (int i = 0; i < filter_size_; ++i)
+			b_coefficients_[i] = tmp_b_coeffcients_[i];
+
+	}
+
+	void FirFilter::InitAcoefficients()
+	{
+		*a_coefficients_ = 1;
+	}
+
+
+
+
+	void FirFilter::ShiftMemory(float* memory) const
+	{
+		auto tmp = memory[0];
+		for (auto i = 1; i<filter_size_; ++i)
+		{
+			memory[i] = memory[i - 1];
+		}
+	}
+
+	void FirFilter::ClearMemory() const
+	{
+		for (auto i = 0; i<filter_size_; ++i)
+		{
+			memory_left_[i] = 0;
+			memory_right_[i] = 0;
+		}
+	}
+
+	void FirFilter::InitMemory()
+	{
+		assert(filter_size_ != 0);
+		if (memory_left_ == nullptr &&
+			memory_right_ == nullptr)
+		{
+			memory_left_ = new float[filter_size_];
+			memory_right_ = new float[filter_size_];
+		}
+		ClearMemory();
+	}
+
+	float FirFilter::FilterOutput(float sample, float* memory) const
+	{
+		assert(memory != nullptr);
+		assert(b_coefficients_ != nullptr);
+
+		memory[0] = sample;
+		double output = 0;
+
+		for (auto i = 0; i < filter_size_; ++i)
+			output += memory[i] * b_coefficients_[i];
+
+		ShiftMemory(memory);
+
+		return output;
+	}
+
+
+
+#include <boost/math/special_functions/factorials.hpp>
+	class FirLowPassFilter :
+		public FirFilter
+	{
+	public:
+		void InitFilter();
+		FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band);
+		~FirLowPassFilter();
+
+		virtual void InitBcoefficients() override;
+		void ChangeCutoffFrequency(double passband_requency, double stopband_frequency);
+
+		void CalculateFilterSize();
+		void InitDFactor();
+		void InitBetaFactor();
+	protected:
+		double stop_band_frequency_;
+		double absorbtion_in_stop_band_;
+		double beta_factor_;
+		double d_factor_;
+	private:
+		void ChangeCutoffFrequency(double newFpass) override;
+		double BesselZeroKindFunction(double beta) const;
+
+
+	};
+
+	void FirLowPassFilter::InitFilter()
+	{
+		InitDFactor();
+		CalculateFilterSize();
+		InitMemory();
+		InitBetaFactor();
+		InitBcoefficients();
+	}
+
+	FirLowPassFilter::FirLowPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band)
+		: FirFilter(sample_rate, pass_band_frequency), stop_band_frequency_(stop_band_frequency), absorbtion_in_stop_band_(absorbtion_in_stop_band)
+	{
+		InitFilter();
+
+	}
+
+	FirLowPassFilter::~FirLowPassFilter()
+	{
+	}
+
+	void FirLowPassFilter::InitBcoefficients()
+	{
+		double h, w;
+		auto fc = (cutoff_frequency_ / 2 + stop_band_frequency_ / 2) / sample_rate_;
+		double half_of_filter_size = filter_size_ / 2;
+		auto besseli_value = BesselZeroKindFunction(beta_factor_);
+		for (int i = 0; i < filter_size_; ++i)
+		{
+			if (i - half_of_filter_size == 0)
+				h = 2 * fc;
+			else
+				h = 2 * fc*sin(2 * 3.14*fc*(i - half_of_filter_size)) / (2 * 3.14*fc*(i - half_of_filter_size));
+			w = BesselZeroKindFunction(beta_factor_*sqrt(1 - pow((i - half_of_filter_size) / half_of_filter_size, 2))) / besseli_value;
+			b_coefficients_[i] = (w*h);
+		}
+	}
+
+	void FirLowPassFilter::ChangeCutoffFrequency(double passband_requency, double stopband_frequency)
+	{
+		cutoff_frequency_ = passband_requency;
+		stop_band_frequency_ = stopband_frequency;
+		InitFilter();
+	}
+
+	void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
+	{
+
+	}
+
+	void FirLowPassFilter::CalculateFilterSize()
+	{
+		assert(d_factor_ != 0);
+		auto df = stop_band_frequency_ - angular_cutoff_frequency_;
+		filter_size_ = static_cast<int>(ceil((d_factor_ * sample_rate_) / (df)));
+		filter_size_ += (filter_size_ % 2 == 0) ? 1 : 0;
+	}
+
+	void FirLowPassFilter::InitDFactor()
+	{
+		assert(absorbtion_in_stop_band_ != 0);
+		d_factor_ = (absorbtion_in_stop_band_ > 21) ? (absorbtion_in_stop_band_ - 7.95) / 14.36 : 0.922;
+	}
+
+	void FirLowPassFilter::InitBetaFactor()
+	{
+		assert(absorbtion_in_stop_band_ != 0);
+		if (absorbtion_in_stop_band_ < 21)
+		{
+			beta_factor_ = 0.0;
+			return;
+		}
+		if (absorbtion_in_stop_band_ >= 21 && absorbtion_in_stop_band_ <= 51)
+		{
+			beta_factor_ = 0.5842*pow(absorbtion_in_stop_band_ - 21, 0.4) + 0.07886*(absorbtion_in_stop_band_ - 21);
+			return;
+		}
+		beta_factor_ = 0.1102*(absorbtion_in_stop_band_ - 8.7);
+	}
+
+	double FirLowPassFilter::BesselZeroKindFunction(double beta) const
+	{
+		double ans = 1;
+		for (int k = 1; k < 7; ++k)
+		{
+			ans += pow(pow(beta / 2, k) / (boost::math::factorial<double>(double(k))), 2);
+		}
+		return float(ans);
+	}
 
 }
 
