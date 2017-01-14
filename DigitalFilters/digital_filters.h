@@ -715,7 +715,7 @@ namespace HoffFilters
 	double IIRLowPassFilter::GetCoefficientDenominator() const
 	{
 		return 4 * absorbtion_factor_ * absorbtion_factor_ * sample_rate_ * sample_rate_ +
-			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(2) +
+			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(double(2)) +
 			angular_cutoff_frequency_ * angular_cutoff_frequency_;
 	}
 
@@ -731,7 +731,7 @@ namespace HoffFilters
 		auto denominator = GetCoefficientDenominator();
 		return (angular_cutoff_frequency_ * angular_cutoff_frequency_ +
 			4 * absorbtion_factor_ * absorbtion_factor_ * sample_rate_ * sample_rate_ -
-			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(2)) / denominator;
+			2 * absorbtion_factor_ * angular_cutoff_frequency_ * sample_rate_ * sqrt(double(2))) / denominator;
 	}
 
 	float IIRLowPassFilter::FilterOutputLeft(float sample)
@@ -970,7 +970,6 @@ namespace HoffFilters
 
 
 
-#include <boost/math/special_functions/factorials.hpp>
 	class FirLowPassFilter :
 		public FirFilter
 	{
@@ -991,6 +990,7 @@ namespace HoffFilters
 		double beta_factor_;
 		double d_factor_;
 	private:
+		static double factorial(unsigned int arg);
 		void ChangeCutoffFrequency(double newFpass) override;
 		double BesselZeroKindFunction(double beta) const;
 
@@ -1041,6 +1041,15 @@ namespace HoffFilters
 		InitFilter();
 	}
 
+	double FirLowPassFilter::factorial(unsigned arg)
+	{
+		if (arg == 0 || arg == 1) return 1;
+		int ans = 2;
+		for (int i = 3; i <= arg; ++i)
+			ans *= i;
+		return ans;
+	}
+
 	void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
 	{
 
@@ -1081,10 +1090,11 @@ namespace HoffFilters
 		double ans = 1;
 		for (int k = 1; k < 7; ++k)
 		{
-			ans += pow(pow(beta / 2, k) / (boost::math::factorial<double>(double(k))), 2);
+			ans += pow(pow(beta / 2, k) / factorial(k), 2);
 		}
-		return float(ans);
+		return ans;
 	}
+
 
 }
 

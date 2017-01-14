@@ -25,6 +25,7 @@ protected:
 	double beta_factor_;
 	double d_factor_;
 private:
+	static double factorial(unsigned int arg);
 	void ChangeCutoffFrequency(double newFpass) override;
 	double BesselZeroKindFunction(double beta) const;
 	

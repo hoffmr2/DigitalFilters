@@ -45,6 +45,15 @@ void FirLowPassFilter::ChangeCutoffFrequency(double passband_requency, double st
 	InitFilter();
 }
 
+double FirLowPassFilter::factorial(unsigned arg)
+{
+	if (arg == 0 || arg == 1) return 1;
+	int ans = 2;
+	for (int i = 3; i <= arg; ++i)
+		ans *= i;
+	return ans;
+}
+
 void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
 {
 	
@@ -85,7 +94,7 @@ double FirLowPassFilter::BesselZeroKindFunction(double beta) const
 	double ans = 1;
 	for (int k = 1; k < 7; ++k)
 	{
-		ans += pow(pow(beta / 2, k) /(boost::math::factorial<double>(double(k))), 2);
+		ans += pow(pow(beta / 2, k) /factorial(k), 2);
 	}
 	return ans;
 }
