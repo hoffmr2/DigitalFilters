@@ -112,5 +112,5 @@ float FirFilter::FilterOutput(float sample, float* memory) const
 
 	ShiftMemory(memory);
 
-	return output;
+	return float(output);
 }
