@@ -1,6 +1,7 @@
 #include "fir_filter.h"
 
 
+
 FirFilter::FirFilter(double sample_rate, double pass_band_frequency)
 	: DigitalFilter(pass_band_frequency, sample_rate), filter_size_(0)
 
@@ -112,5 +113,5 @@ float FirFilter::FilterOutput(float sample, float* memory) const
 
 	ShiftMemory(memory);
 
-	return float(output);
+	return output;
 }

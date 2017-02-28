@@ -60,7 +60,9 @@ double FirLowPassFilter::factorial(unsigned arg)
 
 void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
 {
-
+	cutoff_frequency_ = newFpass;
+	stop_band_frequency_ = 2 * cutoff_frequency_;
+	InitFilter();
 }
 
 void FirLowPassFilter::CalculateFilterSize()

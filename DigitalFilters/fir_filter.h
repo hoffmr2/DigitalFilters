@@ -12,13 +12,13 @@ class FirFilter :
 {
 public:
 	FirFilter(double sample_rate, double pass_band_frequency);
-	FirFilter(double sample_rate, double pass_band_frequency, double* b_coefficients,int filter_size);
+	FirFilter(double sample_rate, double pass_band_frequency, double* b_coefficients, int filter_size);
 	~FirFilter();
 
 	virtual float FilterOutputLeft(float sample) override;
 	virtual float FilterOutputRight(float sample) override;
 	virtual double Spectrum(double frequency) override;
-	
+
 	void InitBcoefficients() override;
 	void InitAcoefficients() override;
 
@@ -33,12 +33,6 @@ protected:
 private:
 	void ChangeCutoffFrequency(double newFpass) override;
 	double* tmp_b_coeffcients_;
-
-
-
-
-
-
 
 
 };

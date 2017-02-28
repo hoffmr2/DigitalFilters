@@ -5,13 +5,14 @@
 #define PI 3.141592653589793
 #include <cassert>
 #include <vector>
+#include <assert.h>
+#include <cmath>
 namespace HoffFilters
 {
 	enum bypassState { on, off };
 
 
-#include <assert.h>
-#include <cmath>
+
 	using namespace std;
 
 	class DigitalFilter
@@ -1056,7 +1057,9 @@ namespace HoffFilters
 
 	void FirLowPassFilter::ChangeCutoffFrequency(double newFpass)
 	{
-
+		cutoff_frequency_ = newFpass;
+		stop_band_frequency_ = 2*cutoff_frequency_;
+		InitFilter();
 	}
 
 	void FirLowPassFilter::CalculateFilterSize()
@@ -1111,6 +1114,7 @@ namespace HoffFilters
 		~FirPolyphaseDecimatorFilter();
 		void CreatePolyphaseFilter(double* tmp_b_coefficients, int i);
 		void InitPolyphaseFilters();
+		void InitFilterOutpuTables();
 		void InitDecimatorFilter();
 
 		virtual float FilterOutputLeft(float sample) override;
@@ -1118,8 +1122,10 @@ namespace HoffFilters
 
 	private:
 		float FilterOutput(float sample, int& sample_counter);
+		float* output_left_;
+		float* output_right_;
 		const int decimation_factor_;
-		std::vector<FirFilter> polyphase_filters_;
+		std::vector<FirFilter*> polyphase_filters_;
 		int number_of_polyphase_filters;
 		int polyphase_filter_size_;
 		int sample_counter_left_;
@@ -1128,7 +1134,7 @@ namespace HoffFilters
 	};
 
 	FirPolyphaseDecimatorFilter::FirPolyphaseDecimatorFilter(double sample_rate, int decimation_factor)
-		:FirLowPassFilter(sample_rate, sample_rate / (2 * decimation_factor), sample_rate / decimation_factor, 60), decimation_factor_(decimation_factor), polyphase_filter_size_(decimation_factor),
+		:FirLowPassFilter(sample_rate, sample_rate / (3 * decimation_factor), sample_rate / decimation_factor, 80), decimation_factor_(decimation_factor), number_of_polyphase_filters(decimation_factor),
 		sample_counter_left_(-1), sample_counter_right_(-1)
 	{
 		InitDecimatorFilter();
@@ -1140,13 +1146,14 @@ namespace HoffFilters
 
 	void FirPolyphaseDecimatorFilter::CreatePolyphaseFilter(double* tmp_b_coefficients, int i)
 	{
-		for (int j = 0; j<polyphase_filter_size_; ++j)
+		for (int j = 0; j < polyphase_filter_size_; ++j)
+		{
 			if (i + j*decimation_factor_ < filter_size_)
 				tmp_b_coefficients[j] = b_coefficients_[i + j*decimation_factor_];
 			else
 				tmp_b_coefficients[j] = 0;
-
-		polyphase_filters_.push_back(FirFilter(sample_rate_ / decimation_factor_, 1, tmp_b_coefficients, polyphase_filter_size_));
+		}
+		polyphase_filters_.push_back(new FirFilter(sample_rate_ / decimation_factor_, 1, tmp_b_coefficients, polyphase_filter_size_));
 	}
 
 	void FirPolyphaseDecimatorFilter::InitPolyphaseFilters()
@@ -1160,13 +1167,29 @@ namespace HoffFilters
 		delete[] tmp_b_coefficients;
 	}
 
+	void FirPolyphaseDecimatorFilter::InitFilterOutpuTables()
+	{
+		output_left_ = new float[number_of_polyphase_filters];
+		output_right_ = new float[number_of_polyphase_filters];
+
+		for(int i=0;i<number_of_polyphase_filters;++i)
+		{
+			output_left_[i] = 0;
+			output_right_[i] = 0;
+		}
+	}
+
 	void FirPolyphaseDecimatorFilter::InitDecimatorFilter()
 	{
 
 		assert(filter_size_ != 0);
-		assert(polyphase_filter_size_ != 0);
+		
 
-		number_of_polyphase_filters = int(ceil(filter_size_ / decimation_factor_));
+		polyphase_filter_size_ = int(ceil(double(filter_size_) / decimation_factor_));
+
+		InitFilterOutpuTables();
+
+
 		InitPolyphaseFilters();
 	}
 
@@ -1174,7 +1197,19 @@ namespace HoffFilters
 	{
 		++sample_counter_left_;
 		sample_counter_left_ %= decimation_factor_;
-		return FilterOutput(sample, sample_counter_left_);
+		if (sample_counter_left_ == 0)
+			output_right_[sample_counter_left_] = polyphase_filters_[sample_counter_left_]->FilterOutputLeft(sample);
+		else
+		{
+			int index = number_of_polyphase_filters - sample_counter_left_ ;
+			output_left_[index] = polyphase_filters_[index]->FilterOutputLeft(sample);
+		}
+
+		float ans = 0;
+		for (int i = 0; i < number_of_polyphase_filters;++i)
+			ans += output_left_[i];
+
+		return ans;
 
 	}
 
@@ -1182,15 +1217,27 @@ namespace HoffFilters
 	{
 		++sample_counter_right_;
 		sample_counter_right_ %= decimation_factor_;
-		return FilterOutput(sample, sample_counter_right_);
+		if (sample_counter_right_ == 0)
+			output_right_[sample_counter_right_] = polyphase_filters_[sample_counter_right_]->FilterOutputRight(sample);
+		else
+		{
+			int index = number_of_polyphase_filters - sample_counter_right_ - 1;
+			output_right_[index] = polyphase_filters_[index]->FilterOutputRight(sample);
+		}
+
+		float ans = 0;
+		for (int i = 0; i < number_of_polyphase_filters; ++i)
+			ans += output_right_[i];
+
+		return ans;
 	}
 
 	float FirPolyphaseDecimatorFilter::FilterOutput(float sample, int& sample_counter)
 	{
 		if (sample_counter == 0)
-			return polyphase_filters_[sample_counter].FilterOutputLeft(sample);
+			return polyphase_filters_[sample_counter]->FilterOutputLeft(sample);
 		else
-			return polyphase_filters_[polyphase_filter_size_ - sample_counter - 1].FilterOutputLeft(sample);
+			return polyphase_filters_[polyphase_filter_size_ - sample_counter - 1]->FilterOutputLeft(sample);
 	}
 
 
