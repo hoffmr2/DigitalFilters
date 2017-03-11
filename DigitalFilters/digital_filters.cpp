@@ -1016,8 +1016,8 @@ namespace HoffFilters
 			b_coefficients_ = new double[COEFFICIENTS_NUMBER];
 
 		auto denominator = 4 * sample_rate_*sample_rate_ + angular_cutoff_frequency_*angular_cutoff_frequency_ + 2 * bandwidth_*sample_rate_;
-		b_coefficients_[0] = 2 * bandwidth_*(sample_rate_ / denominator) / denominator;
+		b_coefficients_[0] = 2 * bandwidth_*(sample_rate_ / denominator);
 		b_coefficients_[1] = 0;
-		b_coefficients_[2] = -2 * bandwidth_*(sample_rate_ / denominator) / denominator;
+		b_coefficients_[2] = -2 * bandwidth_*(sample_rate_ / denominator);
 	}
 }
