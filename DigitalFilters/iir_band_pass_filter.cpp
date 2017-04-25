@@ -4,6 +4,7 @@
 IIRBandPassFilter::IIRBandPassFilter(double cutoff_frequency, double sample_rate, double gain, double q_factor, bypassState bypass_state)
 	: IIRParametricBandPassFilter(cutoff_frequency,sample_rate,gain,q_factor,bypass_state)
 {
+	ChangeQFactor(q_factor);
 }
 
 float IIRBandPassFilter::FilterOutputLeft(float sample)
