@@ -247,7 +247,10 @@ namespace HoffFilters
 		void CalculateFilterSize();
 		void InitDFactor();
 		void InitBetaFactor();
+    virtual float FilterOutputLeft(float sample) override;
+    virtual float FilterOutputRight(float sample) override;
 	protected:
+    float FilterOutput(float sample, float* memory) const;
 		double stop_band_frequency_;
 		double absorbtion_in_stop_band_;
 		double beta_factor_;
@@ -265,23 +268,26 @@ namespace HoffFilters
   {
   public:
     void InitFilter();
-    FirBandPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band, double middle_frequency);
+    FirBandPassFilter(double sample_rate, double pass_band_down, double stop_band_down,double pass_band_up, double stop_band_up,  double absorbtion_in_stop_band);
     ~FirBandPassFilter();
 
     virtual void InitBcoefficients() override;
-    void ChangeCutoffFrequency(double passband_requency, double stopband_frequency, double middle_frequency);
+    void ChangeCutoffFrequency(double pass_band_down, double stop_band_down, double pass_band_up, double stop_band_up);
 
     void CalculateFilterSize();
     void InitDFactor();
     void InitBetaFactor();
   protected:
-    double stop_band_frequency_;
+    double stop_band_down_;
     double absorbtion_in_stop_band_;
-    double middle_frequency_;
+    double pass_band_up_;
+    double stop_band_up_;
+    double delta_frequency_;
     double beta_factor_;
     double d_factor_;
   private:
     static double factorial(unsigned int arg);
+    void SetDeltaFrequency();
     void ChangeCutoffFrequency(double newFpass) override;
     double BesselZeroKindFunction(double beta) const;
   };

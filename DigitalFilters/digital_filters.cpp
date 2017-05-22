@@ -1,4 +1,5 @@
 #include "digital_filters.h"
+#include <algorithm>
 
 namespace HoffFilters
 {
@@ -704,7 +705,9 @@ namespace HoffFilters
 		auto tmp = memory[0];
 		for (auto i = 1; i<filter_size_; ++i)
 		{
-			memory[i] = memory[i - 1];
+      auto tmp2 = memory[i];
+			memory[i] = tmp;
+      tmp = tmp2;
 		}
 	}
 
@@ -737,8 +740,10 @@ namespace HoffFilters
 		memory[0] = sample;
 		double output = 0;
 
-		for (auto i = 0; i < filter_size_; ++i)
-			output += memory[i] * b_coefficients_[i];
+    for (auto i = 0; i < filter_size_; ++i)
+    {
+      output += memory[i] * b_coefficients_[i];
+    }
 
 		ShiftMemory(memory);
 
@@ -840,7 +845,35 @@ namespace HoffFilters
 		beta_factor_ = 0.1102*(absorbtion_in_stop_band_ - 8.7);
 	}
 
-	double FirLowPassFilter::BesselZeroKindFunction(double beta) const
+  float FirLowPassFilter::FilterOutputLeft(float sample)
+  {
+    return FilterOutput(sample, memory_left_);
+  }
+
+  float FirLowPassFilter::FilterOutputRight(float sample)
+  {
+    return FilterOutput(sample, memory_right_);
+  }
+
+  float FirLowPassFilter::FilterOutput(float sample, float* memory) const
+  {
+    assert(memory != nullptr);
+    assert(b_coefficients_ != nullptr);
+
+    memory[0] = sample;
+    double output = 0;
+
+    for (auto i = 0; i < filter_size_; ++i)
+    {
+      output += memory[i] * b_coefficients_[i];
+    }
+
+    ShiftMemory(memory);
+
+    return output;
+  }
+
+  double FirLowPassFilter::BesselZeroKindFunction(double beta) const
 	{
 		double ans = 1;
 		for (int k = 1; k < 7; ++k)
@@ -854,6 +887,7 @@ namespace HoffFilters
 
   void FirBandPassFilter::InitFilter()
   {
+    SetDeltaFrequency();
     InitDFactor();
     CalculateFilterSize();
     InitMemory();
@@ -861,8 +895,8 @@ namespace HoffFilters
     InitBcoefficients();
   }
 
-  FirBandPassFilter::FirBandPassFilter(double sample_rate, double pass_band_frequency, double stop_band_frequency, double absorbtion_in_stop_band, double middle_frequency)
-    : FirFilter(sample_rate, pass_band_frequency), stop_band_frequency_(stop_band_frequency), absorbtion_in_stop_band_(absorbtion_in_stop_band), middle_frequency_(middle_frequency)
+  FirBandPassFilter::FirBandPassFilter(double sample_rate, double pass_band_down, double stop_band_down, double pass_band_up, double stop_band_up, double absorbtion_in_stop_band)
+    : FirFilter(sample_rate, pass_band_down), stop_band_down_(stop_band_down), absorbtion_in_stop_band_(absorbtion_in_stop_band), pass_band_up_(pass_band_up),stop_band_up_(stop_band_up)
   {
     InitFilter();
 
@@ -876,31 +910,34 @@ namespace HoffFilters
 
   void FirBandPassFilter::InitBcoefficients()
   {
-    double h, w, f0;
 
+    double h, w,f1,f2;
+    f1 = (stop_band_down_ + (delta_frequency_ / 2)) / sample_rate_;
+    f2 = (stop_band_up_ - (delta_frequency_ / 2)) / sample_rate_;
     if (b_coefficients_ != nullptr)
       delete b_coefficients_;
     b_coefficients_ = new double[filter_size_];
-    auto fc = (cutoff_frequency_ / 2 + stop_band_frequency_ / 2) / sample_rate_;
     double half_of_filter_size = filter_size_ / 2;
     auto besseli_value = BesselZeroKindFunction(beta_factor_);
     for (int i = 0; i < filter_size_; ++i)
     {
       if (i - half_of_filter_size == 0)
-        h = 2 * fc;
+        h = 2*(f2-f1);
       else
-        h = 2 * fc*sin(2 * 3.14*fc*(i - half_of_filter_size)) / (2 * 3.14*fc*(i - half_of_filter_size));
+        h = (2 * f2*sin(2 * PI*f2*(i - half_of_filter_size)) / (2 * PI*f2*(i - half_of_filter_size)))
+      - (2 * f1*sin(2 * PI*f1*(i - half_of_filter_size)) / (2 * PI*f1*(i - half_of_filter_size)));
       w = BesselZeroKindFunction(beta_factor_*sqrt(1 - pow((i - half_of_filter_size) / half_of_filter_size, 2))) / besseli_value;
-      f0 = std::cos(2 * PI*middle_frequency_*i / sample_rate_);
-      b_coefficients_[i] = (w*h*f0);
+      b_coefficients_[i] = (w*h);
     }
   }
 
-  void FirBandPassFilter::ChangeCutoffFrequency(double passband_requency, double stopband_frequency, double middle_frequency)
+  void FirBandPassFilter::ChangeCutoffFrequency(double pass_band_down, double stop_band_down, double pass_band_up, double stop_band_up)
   {
-    cutoff_frequency_ = passband_requency;
-    stop_band_frequency_ = stopband_frequency;
-    middle_frequency_ = middle_frequency;
+    cutoff_frequency_ = pass_band_down;
+    stop_band_down_ = stop_band_down;
+    pass_band_up_ = pass_band_up;
+    stop_band_up = stop_band_up;
+
     InitFilter();
   }
 
@@ -913,19 +950,23 @@ namespace HoffFilters
     return ans;
   }
 
+  void FirBandPassFilter::SetDeltaFrequency()
+  {
+    delta_frequency_ = min(cutoff_frequency_ - stop_band_down_, stop_band_up_ - pass_band_up_);
+  }
+
   void FirBandPassFilter::ChangeCutoffFrequency(double newFpass)
   {
     cutoff_frequency_ = newFpass;
-    stop_band_frequency_ = 2 * cutoff_frequency_;
+    stop_band_down_ = 2 * cutoff_frequency_;
     InitFilter();
   }
 
   void FirBandPassFilter::CalculateFilterSize()
   {
     assert(d_factor_ != 0);
-    assert(stop_band_frequency_ > cutoff_frequency_);
-    auto df = stop_band_frequency_ - cutoff_frequency_;
-    filter_size_ = static_cast<int>(ceil((d_factor_ * sample_rate_) / (df)));
+    assert(stop_band_down_ < cutoff_frequency_);
+    filter_size_ = static_cast<int>(ceil((d_factor_ * sample_rate_) / (delta_frequency_)));
     filter_size_ += (filter_size_ % 2 == 0) ? 1 : 0;
   }
 
