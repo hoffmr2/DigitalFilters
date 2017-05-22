@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="digital_filter.h" />
     <ClInclude Include="digital_filters.h" />
+    <ClInclude Include="fir_band_pass_filter.h" />
     <ClInclude Include="fir_filter.h" />
     <ClInclude Include="fir_interpolator_filter.h" />
     <ClInclude Include="fir_low_pass_filter.h" />
@@ -162,6 +163,7 @@
   <ItemGroup>
     <ClCompile Include="digital_filter.cpp" />
     <ClCompile Include="digital_filters.cpp" />
+    <ClCompile Include="fir_band_pass_filter.cpp" />
     <ClCompile Include="fir_filter.cpp" />
     <ClCompile Include="fir_interpolator_filter.cpp" />
     <ClCompile Include="fir_low_pass_filter.h.cpp" />

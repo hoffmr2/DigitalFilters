@@ -51,6 +51,9 @@
     <ClInclude Include="iir_band_pass_filter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fir_band_pass_filter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="digital_filter.cpp">
@@ -87,6 +90,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="digital_filters.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fir_band_pass_filter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
